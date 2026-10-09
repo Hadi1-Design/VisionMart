@@ -1,0 +1,55 @@
+=============================================================================
+                          FINAL OPTIMIZATION REPORT
+=============================================================================
+
+1. OVERVIEW:
+-----------
+This document outlines the speedup, memory cleanup, and Firestore read 
+optimizations applied to the VisionMart Flutter application. These changes 
+have ZERO negative impact on existing features. They only improve stability, 
+reduce Firestore billing quota usage, and prevent resource leaks.
+
+2. DETAILED OPTIMIZATIONS (WHAT & WHY):
+----------------------------------------
+
+A. Dynamic Getters vs. Shared Broadcast Streams (Performance)
+- Problem: The services used Dart getters (e.g. `Stream get someStream => db.snapshots()`) 
+  to return database streams. Every time the UI rebuilt or a new screen requested the 
+  stream, a brand new stream listener was created, and the old one was canceled. 
+  This caused stream reconnect overhead, UI flickering, and excessive Firestore read operations.
+- Solution: Cache the stream instances using `late final` variables. This ensures 
+  the stream is initialized exactly once.
+- Broadcast Conversion: By converting streams to broadcast streams (`.asBroadcastStream()`), 
+  multiple widgets can listen to the exact same stream concurrently. Firestore is 
+  only queried once for that data.
+
+B. Resource Leak Prevention (Memory Cleanup)
+- Problem: The background Firestore streams in `AlertService` (including shoplifting) 
+  never held a reference to their subscriptions. If the user logged out or closed 
+  the session, the listeners remained active in the background, leaking memory 
+  and continually downloading new database entries.
+- Solution: Maintain references to all active stream subscriptions inside a list, 
+  and implement a central `stopListening()` method to safely close and dispose of 
+  all listeners.
+
+3. FILES MODIFIED & CHANGES APPLIED:
+------------------------------------
+
+1. [alert_service.dart](file:///d:/FYP/vision_app/lib/pages/alert_service.dart)
+   - Added `StreamSubscription? _shopliftingSub` to hold the shoplifting listener reference.
+   - Refactored `startListeningToShoplifting()` to save its subscription.
+   - Added `stopListening()` to cancel both `_weaponSubscriptions` and `_shopliftingSub`.
+
+2. [people_count_service.dart](file:///d:/FYP/vision_app/lib/services/people_count_service.dart)
+   - Converted `peopleCountStream` from a dynamic getter to a `late final Stream<int>`.
+   - Converted `totalEntriesStream` from a dynamic getter to a `late final Stream<int>`.
+   - Appended `.asBroadcastStream()` to share subscriptions.
+
+3. [presence_service.dart](file:///d:/FYP/vision_app/lib/services/presence_service.dart)
+   - Converted `activeNodesStream` from a dynamic getter to a `late final Stream<int>`.
+
+4. [peak_hour_service.dart](file:///d:/FYP/vision_app/lib/services/peak_hour_service.dart)
+   - Converted `hourlyStatsStream` from a dynamic getter to a `late final Stream<List<HourlyStat>>`.
+   - Converted `peakHourStream` from a dynamic getter to a `late final Stream<PeakHourData>`.
+
+=============================================================================

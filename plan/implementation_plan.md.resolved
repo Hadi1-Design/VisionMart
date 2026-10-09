@@ -1,0 +1,38 @@
+# Forgot Password Implementation Plan
+
+Implement a secure and visually consistent "Forgot Password" flow using Firebase Authentication.
+
+## User Review Required
+
+> [!IMPORTANT]
+> The password reset link will be sent to the user's registered email address. Ensure that the Firebase project is configured with a valid sender email in the Firebase Console (Authentication > Templates).
+
+## Proposed Changes
+
+### Authentication Logic
+
+#### [NEW] [forgot_password.dart](file:///d:/FYP/vision_app/lib/pages/forgot_password.dart)
+- Create a new stateful widget `ForgotPasswordPage`.
+- Use the existing design system (`AppColors`, `AppTextStyles`, `GlassCard`) for a premium look.
+- Implement a single email input field.
+- Add a "Reset Password" button that triggers `_auth.sendPasswordResetEmail`.
+- Include a "Back to Login" navigation.
+
+### Routing
+
+#### [MODIFY] [main.dart](file:///d:/FYP/vision_app/lib/main.dart)
+- Import `ForgotPasswordPage`.
+- Add the route `'/forgot-password'` to the `MaterialApp` routes map.
+
+### UI Integration
+
+#### [MODIFY] [login.dart](file:///d:/FYP/vision_app/lib/pages/login.dart)
+- Update the "Forgot password?" `TextButton` to navigate to the new route using `Navigator.pushNamed(context, '/forgot-password')`.
+
+## Verification Plan
+
+### Manual Verification
+- **Happy Path**: Enter a valid registered email, click "Reset Password", verify SnackBar success message, check email for the reset link.
+- **Error Handling**: Enter an invalid email format and verify the error SnackBar.
+- **Navigation**: Verify "Back to Login" works correctly.
+- **UI Consistency**: Ensure the new page matches the glassmorphism aesthetic of the login page.
